@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { db, ensureDbReady } from '@/lib/db';
 
 export async function GET() {
   try {
+    await ensureDbReady();
     const posts = await db.post.findMany({ orderBy: { createdAt: 'desc' } });
     const settings = await db.settings.findMany();
 
@@ -28,6 +29,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    await ensureDbReady();
     const backup = await request.json();
 
     if (!backup || !Array.isArray(backup.posts)) {
@@ -96,6 +98,7 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    await ensureDbReady();
     const { confirmation } = await request.json();
 
     if (confirmation !== 'DELETE') {
@@ -111,3 +114,4 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: error?.message || 'Delete operation failed' }, { status: 500 });
   }
 }
+

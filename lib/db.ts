@@ -16,7 +16,7 @@ ensureDatabaseUrl();
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
-  initialized?: boolean;
+  initPromise?: Promise<void>;
 };
 
 export const db =
@@ -27,41 +27,44 @@ export const db =
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db;
 
-async function initTablesIfNeeded() {
-  if (globalForPrisma.initialized) return;
-  globalForPrisma.initialized = true;
+export async function ensureDbReady() {
+  ensureDatabaseUrl();
 
-  try {
-    const url = process.env.DATABASE_URL || '';
-    if (url.startsWith('file:')) {
-      await db.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS "Post" (
-            "id" TEXT NOT NULL PRIMARY KEY,
-            "status" TEXT NOT NULL DEFAULT 'idea',
-            "ideaTitle" TEXT,
-            "ideaDescription" TEXT,
-            "postText" TEXT,
-            "seoTags" TEXT,
-            "imagePrompt" TEXT,
-            "imageUrl" TEXT,
-            "imageOptions" TEXT,
-            "scheduledFor" DATETIME,
-            "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-        );
-      `);
-      await db.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS "Settings" (
-            "key" TEXT NOT NULL PRIMARY KEY,
-            "value" TEXT NOT NULL,
-            "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-        );
-      `);
-    }
-  } catch (err) {
-    console.error('Auto-initializing SQLite tables error:', err);
+  if (!globalForPrisma.initPromise) {
+    globalForPrisma.initPromise = (async () => {
+      try {
+        const url = process.env.DATABASE_URL || '';
+        if (url.startsWith('file:') || url.includes('.db')) {
+          await db.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS "Post" (
+                "id" TEXT NOT NULL PRIMARY KEY,
+                "status" TEXT NOT NULL DEFAULT 'idea',
+                "ideaTitle" TEXT,
+                "ideaDescription" TEXT,
+                "postText" TEXT,
+                "seoTags" TEXT,
+                "imagePrompt" TEXT,
+                "imageUrl" TEXT,
+                "imageOptions" TEXT,
+                "scheduledFor" DATETIME,
+                "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+          `);
+          await db.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS "Settings" (
+                "key" TEXT NOT NULL PRIMARY KEY,
+                "value" TEXT NOT NULL,
+                "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+          `);
+        }
+      } catch (err) {
+        console.error('Auto-initializing SQLite tables error:', err);
+      }
+    })();
   }
+  await globalForPrisma.initPromise;
 }
 
-initTablesIfNeeded();
 

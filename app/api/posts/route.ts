@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { db, ensureDbReady } from '@/lib/db';
 
 export async function GET(request: Request) {
   try {
+    await ensureDbReady();
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const search = searchParams.get('search');
@@ -34,6 +35,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    await ensureDbReady();
     const body = await request.json();
     const {
       status = 'draft',
@@ -66,3 +68,4 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error?.message || 'Failed to create post' }, { status: 500 });
   }
 }
+

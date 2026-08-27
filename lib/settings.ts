@@ -1,4 +1,4 @@
-import { db } from './db';
+import { db, ensureDbReady } from './db';
 import { DEFAULT_PROMPTS } from './default-prompts';
 
 export type SettingsMap = {
@@ -11,6 +11,8 @@ export type SettingsMap = {
 };
 
 export async function getSettings(): Promise<SettingsMap> {
+  await ensureDbReady();
+
   const defaults: SettingsMap = {
     gemini_api_key: process.env.GEMINI_API_KEY || '',
     selected_models: 'gemini-3.5-flash,gemini-3.6-flash',
@@ -58,6 +60,7 @@ export function getParsedSelectedModels(settings: SettingsMap): string[] {
 }
 
 export async function saveSetting(key: keyof SettingsMap, value: string) {
+  await ensureDbReady();
   return await db.settings.upsert({
     where: { key },
     update: { value, updatedAt: new Date() },
@@ -66,6 +69,7 @@ export async function saveSetting(key: keyof SettingsMap, value: string) {
 }
 
 export async function saveAllSettings(settings: Partial<SettingsMap>) {
+  await ensureDbReady();
   const keys = Object.keys(settings) as (keyof SettingsMap)[];
   for (const key of keys) {
     if (settings[key] !== undefined) {
@@ -75,6 +79,7 @@ export async function saveAllSettings(settings: Partial<SettingsMap>) {
 }
 
 export async function resetSettingToDefault(key: keyof SettingsMap) {
+  await ensureDbReady();
   const defaultValue = key === 'gemini_api_key'
     ? (process.env.GEMINI_API_KEY || '')
     : DEFAULT_PROMPTS[key as keyof typeof DEFAULT_PROMPTS] || '';
@@ -82,3 +87,4 @@ export async function resetSettingToDefault(key: keyof SettingsMap) {
   await saveSetting(key, defaultValue);
   return defaultValue;
 }
+

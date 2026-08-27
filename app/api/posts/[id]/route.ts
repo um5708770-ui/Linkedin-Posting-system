@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { db, ensureDbReady } from '@/lib/db';
 
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
+    await ensureDbReady();
     const post = await db.post.findUnique({
       where: { id: params.id },
     });
@@ -21,6 +22,7 @@ export async function GET(
 }
 
 async function handleUpdate(id: string, body: any) {
+  await ensureDbReady();
   const updateData: any = { ...body, updatedAt: new Date() };
 
   if (body.seoTags && Array.isArray(body.seoTags)) {
@@ -88,6 +90,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    await ensureDbReady();
     await db.post.delete({
       where: { id: params.id },
     });
@@ -97,3 +100,4 @@ export async function DELETE(
     return NextResponse.json({ error: error?.message || 'Failed to delete post' }, { status: 500 });
   }
 }
+
