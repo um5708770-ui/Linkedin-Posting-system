@@ -11,6 +11,11 @@ export default function IntroSplash({ onComplete }: { onComplete?: () => void })
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
+    // Lock body scroll during splash screen to prevent screen size fluctuations / scrollbar shifts
+    if (typeof document !== 'undefined') {
+      document.body.style.overflow = 'hidden';
+    }
+
     const checkMobile = () => {
       if (typeof window !== 'undefined') {
         setIsMobile(window.innerWidth < 640);
@@ -29,7 +34,7 @@ export default function IntroSplash({ onComplete }: { onComplete?: () => void })
       setStage('line_center');
     }, 450);
 
-    // 1.8s: Line smoothly glides to 100vw full-screen width
+    // 1.8s: Line smoothly glides to 100% full-screen width
     const t2 = setTimeout(() => {
       setStage('line_fullscreen');
     }, 1800);
@@ -39,13 +44,19 @@ export default function IntroSplash({ onComplete }: { onComplete?: () => void })
       setStage('slide_up');
     }, 2200);
 
-    // 4.25s: Unmount intro splash
+    // 3.2s: Unmount intro splash cleanly
     const t4 = setTimeout(() => {
       setStage('done');
+      if (typeof document !== 'undefined') {
+        document.body.style.overflow = '';
+      }
       if (onComplete) onComplete();
-    }, 4250);
+    }, 3200);
 
     return () => {
+      if (typeof document !== 'undefined') {
+        document.body.style.overflow = '';
+      }
       window.removeEventListener('resize', checkMobile);
       clearTimeout(t0);
       clearTimeout(t1);
@@ -60,26 +71,28 @@ export default function IntroSplash({ onComplete }: { onComplete?: () => void })
   const isSlideUp = stage === 'slide_up';
 
   const getLineWidth = () => {
-    if (stage === 'start' || stage === 'brand_in') return '0px';
-    if (stage === 'line_center') return isMobile ? 'min(85vw, 320px)' : '700px';
-    return '100vw';
+    if (stage === 'start' || stage === 'brand_in') return '0%';
+    if (stage === 'line_center') return isMobile ? '85%' : '700px';
+    return '100%';
   };
 
   const getLineTransition = () => {
     if (stage === 'line_center') return 'width 1000ms cubic-bezier(0.25, 1, 0.5, 1)';
-    if (stage === 'line_fullscreen' || stage === 'slide_up') return 'width 1200ms cubic-bezier(0.25, 1, 0.5, 1)';
-    return 'width 800ms ease';
+    if (stage === 'line_fullscreen' || stage === 'slide_up') return 'width 800ms cubic-bezier(0.25, 1, 0.5, 1)';
+    return 'width 600ms ease';
   };
+
 
   return (
     <div
-      className="fixed inset-0 z-[100] bg-[#070a12] flex flex-col items-center justify-between shadow-2xl border-b border-blue-500/30 overflow-hidden select-none"
+      className="fixed inset-0 z-[100] w-full h-full bg-[#070a12] flex flex-col items-center justify-between shadow-2xl border-b border-blue-500/30 overflow-hidden select-none transform-gpu"
       style={{
-        transform: isSlideUp ? 'translateY(-100%)' : 'translateY(0%)',
-        transition: 'transform 950ms cubic-bezier(0.77, 0, 0.175, 1)',
+        transform: isSlideUp ? 'translate3d(0, -100%, 0)' : 'translate3d(0, 0, 0)',
+        transition: 'transform 850ms cubic-bezier(0.77, 0, 0.175, 1)',
         willChange: 'transform',
       }}
     >
+
       {/* Background Ambient Glowing Mesh */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[320px] h-[320px] sm:w-[850px] sm:h-[850px] bg-blue-600/15 rounded-full blur-[120px] sm:blur-[180px] animate-pulse" />
