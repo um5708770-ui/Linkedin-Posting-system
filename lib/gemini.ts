@@ -102,19 +102,55 @@ export async function generateIdeasFromAI(): Promise<{ title: string; descriptio
   return await executeRotatedAiCall(
     (settings) => settings.ideas_prompt,
     (responseText) => {
+      // 1. Try JSON parsing if returned JSON
       try {
         const parsed = parseJsonWithFallback(responseText);
         if (Array.isArray(parsed) && parsed.length > 0) {
           return parsed
             .map((item) => ({
-              title: item.title || item.idea || 'Podcast Growth Strategy',
-              description: item.description || item.concept || item.title || '',
+              title: item.title || item.idea || item.hook || 'Podcast Growth Strategy',
+              description: item.description || item.insight || item.concept || item.title || '',
             }))
             .slice(0, 8);
         }
       } catch (e) {}
 
-      // Fallback text parser
+      // 2. Parse structured plain text blocks (IDEA 1, HOOK, INSIGHT, etc.)
+      const blocks = responseText.split(/(?=IDEA\s+\d+[:\-\s\n])/i).filter((b) => b.trim().length > 0);
+      const structuredIdeas: { title: string; description: string }[] = [];
+
+      for (const block of blocks) {
+        const lines = block.split('\n').map((l) => l.trim()).filter(Boolean);
+        if (lines.length === 0) continue;
+
+        let title = '';
+        const descLines: string[] = [];
+
+        for (const line of lines) {
+          if (line.match(/^IDEA\s+\d+/i)) {
+            title = line.replace(/^IDEA\s+\d+[:\-\s]*/i, '').trim();
+          } else {
+            descLines.push(line);
+          }
+        }
+
+        if (!title && lines[0]) {
+          title = lines[0].replace(/^IDEA\s+\d+[:\-\s]*/i, '').trim();
+        }
+
+        if (title || descLines.length > 0) {
+          structuredIdeas.push({
+            title: title || 'Podcast Growth Idea',
+            description: descLines.join('\n') || title,
+          });
+        }
+      }
+
+      if (structuredIdeas.length > 0) {
+        return structuredIdeas.slice(0, 8);
+      }
+
+      // 3. Fallback parser
       const lines = responseText.split('\n').map((l) => l.trim()).filter(Boolean);
       const fallbackIdeas: { title: string; description: string }[] = [];
       let currentTitle = '';
@@ -128,7 +164,7 @@ export async function generateIdeasFromAI(): Promise<{ title: string; descriptio
           currentTitle = line.replace(/^(IDEA \d+:?|\d+[\.\)]|Title:?)/i, '').trim();
           currentDesc = '';
         } else if (currentTitle) {
-          currentDesc += (currentDesc ? ' ' : '') + line;
+          currentDesc += (currentDesc ? '\n' : '') + line;
         }
       }
       if (currentTitle) {
@@ -141,9 +177,10 @@ export async function generateIdeasFromAI(): Promise<{ title: string; descriptio
 
       throw new Error('Invalid ideas array structure received from Gemini API.');
     },
-    true
+    false
   );
 }
+
 
 /**
  * Step 2: Post Drafting
