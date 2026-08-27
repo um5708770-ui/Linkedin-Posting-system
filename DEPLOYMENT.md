@@ -52,8 +52,11 @@ Vercel functions run in a serverless environment where local files (like SQLite 
 | `APP_PASSWORD` | Your login password (e.g. `admin123`) |
 | `JWT_SECRET` | A secure random string for JWT auth |
 | `DATABASE_URL` | Your cloud database URL (e.g., Neon Postgres URL or Turso URL) |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | `BKDw0WDT1YaWIjFRR5tkYU-YkI4S5hxBxhOzu1yHedBGlLsFDX6TAKWI7O_AA86eeqkGIhCALhUVvnV08XTHQe0` |
+| `VAPID_PRIVATE_KEY` | `8iaISx4HTJo3bC5zqhZB0WMfPYhdEFi3SHuPRvOXt3c` |
 
 5. Click **Deploy**. Vercel will automatically build and publish your app live!
+
 
 
 ---
