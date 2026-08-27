@@ -8,8 +8,6 @@ export type SettingsMap = {
   post_prompt: string;
   seo_image_prompt: string;
   brand_voice: string;
-  reminder_enabled: string;
-  reminder_time: string;
 };
 
 export async function getSettings(): Promise<SettingsMap> {
@@ -22,9 +20,8 @@ export async function getSettings(): Promise<SettingsMap> {
     post_prompt: DEFAULT_PROMPTS.post_prompt,
     seo_image_prompt: DEFAULT_PROMPTS.seo_image_prompt,
     brand_voice: DEFAULT_PROMPTS.brand_voice,
-    reminder_enabled: 'true',
-    reminder_time: '20:00',
   };
+
 
 
   try {
