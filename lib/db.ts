@@ -58,6 +58,17 @@ export async function ensureDbReady() {
                 "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
           `);
+          await db.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS "PushSubscription" (
+                "id" TEXT NOT NULL PRIMARY KEY,
+                "endpoint" TEXT NOT NULL UNIQUE,
+                "p256dh" TEXT NOT NULL,
+                "auth" TEXT NOT NULL,
+                "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+          `);
+
         }
       } catch (err) {
         console.error('Auto-initializing SQLite tables error:', err);

@@ -52,8 +52,17 @@ Vercel functions run in a serverless environment where local files (like SQLite 
 | `APP_PASSWORD` | Your login password (e.g. `admin123`) |
 | `JWT_SECRET` | A secure random string for JWT auth |
 | `DATABASE_URL` | Your cloud database URL (e.g., Neon Postgres URL or Turso URL) |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | `BKDw0WDT1YaWIjFRR5tkYU-YkI4S5hxBxhOzu1yHedBGlLsFDX6TAKWI7O_AA86eeqkGIhCALhUVvnV08XTHQe0` |
+| `VAPID_PRIVATE_KEY` | `8iaISx4HTJo3bC5zqhZB0WMfPYhdEFi3SHuPRvOXt3c` |
 
 5. Click **Deploy**. Vercel will automatically build and publish your app live!
+
+---
+
+## 🔔 Step 4: Daily 8 PM Vercel Cron Job
+- `vercel.json` is pre-configured with schedule `"0 15 * * *"` (8:00 PM PKT / 15:00 UTC).
+- Once deployed on Vercel, Vercel Cron Jobs will automatically trigger `/api/cron/reminder` daily.
+- Go to your settings page (`/settings`) on your mobile browser, tap **"Enable Daily 8 PM Reminders"** and click **"Allow Notifications"**.
 
 ---
 
@@ -62,3 +71,4 @@ Vercel functions run in a serverless environment where local files (like SQLite 
 - `.next/` build output ignored via `.gitignore`
 - `.env` secret keys ignored via `.gitignore`
 - Build verified with zero errors (`npm run build`)
+
