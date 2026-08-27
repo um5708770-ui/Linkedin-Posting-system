@@ -65,7 +65,7 @@ export default function Step1Ideas({
             Generate Podcast Growth Content Ideas
           </h2>
           <p className="text-slate-400 text-sm mt-1">
-            Click below to generate 5-8 tailored LinkedIn post concepts based on your customizable prompt.
+            Click below to generate 3 tailored LinkedIn post concepts based on your customizable prompt.
           </p>
         </div>
 
@@ -111,8 +111,8 @@ export default function Step1Ideas({
 
       {/* Loading Skeletons */}
       {loading && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[1, 2, 3, 4, 5, 6].map((n) => (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[1, 2, 3].map((n) => (
             <div key={n} className="glass-card p-5 rounded-2xl animate-pulse space-y-3">
               <div className="h-5 bg-slate-800 rounded w-3/4" />
               <div className="h-4 bg-slate-800/60 rounded w-full" />
@@ -137,10 +137,11 @@ export default function Step1Ideas({
             className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm rounded-xl shadow-lg shadow-blue-600/25 inline-flex items-center gap-2"
           >
             <Sparkles className="w-4 h-4" />
-            <span>Generate 6 Fresh Ideas</span>
+            <span>Generate 3 Fresh Ideas</span>
           </button>
         </div>
       )}
+
 
       {/* Idea Cards Grid */}
       {!loading && ideas.length > 0 && (
