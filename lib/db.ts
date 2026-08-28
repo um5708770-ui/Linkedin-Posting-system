@@ -2,13 +2,21 @@ import { PrismaClient } from '@prisma/client';
 import path from 'path';
 
 function ensureDatabaseUrl() {
-  if (!process.env.DATABASE_URL || process.env.DATABASE_URL.trim() === '') {
-    if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
-      process.env.DATABASE_URL = 'file:/tmp/dev.db';
-    } else {
-      const localDbPath = path.join(process.cwd(), 'prisma', 'dev.db');
-      process.env.DATABASE_URL = `file:${localDbPath}`;
-    }
+  const neonDefaultUrl =
+    'postgresql://neondb_owner:npg_3HmWud8KXErI@ep-frosty-dawn-av77oi8i-pooler.c-11.us-east-1.aws.neon.tech/neondb?channel_binding=require&sslmode=require';
+
+  const activeUrl =
+    process.env.DATABASE_URL ||
+    process.env.POSTGRES_PRISMA_URL ||
+    process.env.POSTGRES_URL ||
+    process.env.DATABASE_URL_UNPOOLED ||
+    neonDefaultUrl;
+
+  // Ensure DATABASE_URL is never file: or empty when provider = postgresql
+  if (!activeUrl || activeUrl.startsWith('file:')) {
+    process.env.DATABASE_URL = neonDefaultUrl;
+  } else {
+    process.env.DATABASE_URL = activeUrl;
   }
 }
 
