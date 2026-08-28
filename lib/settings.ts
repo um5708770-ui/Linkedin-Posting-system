@@ -12,6 +12,7 @@ export type SettingsMap = {
   brand_voice: string;
   reminder_enabled: string;
   reminder_time: string;
+  active_pipeline_session?: string;
 };
 
 function syncKeyToEnvFile(apiKey: string) {
@@ -46,6 +47,7 @@ export async function getSettings(): Promise<SettingsMap> {
     brand_voice: DEFAULT_PROMPTS.brand_voice,
     reminder_enabled: 'true',
     reminder_time: '20:00',
+    active_pipeline_session: '',
   };
 
   try {
@@ -53,7 +55,7 @@ export async function getSettings(): Promise<SettingsMap> {
     const result = { ...defaults };
 
     for (const item of dbSettings) {
-      if (item.key in result && item.value) {
+      if (item.key in result && item.value !== undefined) {
         result[item.key as keyof SettingsMap] = item.value;
       }
     }
