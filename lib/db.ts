@@ -68,16 +68,45 @@ export async function ensureDbReady() {
                 "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
           `);
-
-
-
+        } else if (url.startsWith('postgres') || url.startsWith('postgresql')) {
+          await db.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS "Post" (
+                "id" TEXT NOT NULL PRIMARY KEY,
+                "status" TEXT NOT NULL DEFAULT 'idea',
+                "ideaTitle" TEXT,
+                "ideaDescription" TEXT,
+                "postText" TEXT,
+                "seoTags" TEXT,
+                "imagePrompt" TEXT,
+                "imageUrl" TEXT,
+                "imageOptions" TEXT,
+                "scheduledFor" TIMESTAMP(3),
+                "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+          `);
+          await db.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS "Settings" (
+                "key" TEXT NOT NULL PRIMARY KEY,
+                "value" TEXT NOT NULL,
+                "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+          `);
+          await db.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS "PushSubscription" (
+                "id" TEXT NOT NULL PRIMARY KEY,
+                "endpoint" TEXT NOT NULL UNIQUE,
+                "p256dh" TEXT NOT NULL,
+                "auth" TEXT NOT NULL,
+                "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+          `);
         }
       } catch (err) {
-        console.error('Auto-initializing SQLite tables error:', err);
+        console.error('Auto-initializing DB tables error:', err);
       }
     })();
   }
   await globalForPrisma.initPromise;
 }
-
-
