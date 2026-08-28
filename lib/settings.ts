@@ -1,5 +1,7 @@
 import { db, ensureDbReady } from './db';
 import { DEFAULT_PROMPTS } from './default-prompts';
+import fs from 'fs';
+import path from 'path';
 
 export type SettingsMap = {
   gemini_api_key: string;
@@ -11,6 +13,26 @@ export type SettingsMap = {
   reminder_enabled: string;
   reminder_time: string;
 };
+
+function syncKeyToEnvFile(apiKey: string) {
+  try {
+    const envPath = path.join(process.cwd(), '.env');
+    if (fs.existsSync(envPath)) {
+      let content = fs.readFileSync(envPath, 'utf8');
+      // Normalize line breaks
+      const cleanKey = apiKey.replace(/[\r\n]+/g, ',').trim();
+      if (content.includes('GEMINI_API_KEY=')) {
+        content = content.replace(/GEMINI_API_KEY=.*/, `GEMINI_API_KEY="${cleanKey}"`);
+      } else {
+        content += `\nGEMINI_API_KEY="${cleanKey}"\n`;
+      }
+      fs.writeFileSync(envPath, content, 'utf8');
+      process.env.GEMINI_API_KEY = cleanKey;
+    }
+  } catch (e) {
+    console.warn('Failed to sync API key to .env file:', e);
+  }
+}
 
 export async function getSettings(): Promise<SettingsMap> {
   await ensureDbReady();
@@ -26,17 +48,19 @@ export async function getSettings(): Promise<SettingsMap> {
     reminder_time: '20:00',
   };
 
-
-
-
   try {
     const dbSettings = await db.settings.findMany();
     const result = { ...defaults };
 
     for (const item of dbSettings) {
-      if (item.key in result) {
+      if (item.key in result && item.value) {
         result[item.key as keyof SettingsMap] = item.value;
       }
+    }
+
+    // Auto-restore API key from .env if SQLite database was reset on sudden power outage
+    if (!result.gemini_api_key && process.env.GEMINI_API_KEY) {
+      result.gemini_api_key = process.env.GEMINI_API_KEY;
     }
 
     return result;
@@ -68,6 +92,9 @@ export function getParsedSelectedModels(settings: SettingsMap): string[] {
 
 export async function saveSetting(key: keyof SettingsMap, value: string) {
   await ensureDbReady();
+  if (key === 'gemini_api_key' && value.trim()) {
+    syncKeyToEnvFile(value.trim());
+  }
   return await db.settings.upsert({
     where: { key },
     update: { value, updatedAt: new Date() },
@@ -94,4 +121,3 @@ export async function resetSettingToDefault(key: keyof SettingsMap) {
   await saveSetting(key, defaultValue);
   return defaultValue;
 }
-
