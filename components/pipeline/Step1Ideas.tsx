@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { Lightbulb, RefreshCw, ArrowRight, AlertCircle, Sparkles, CheckCircle2 } from 'lucide-react';
+import { buildAntiRepeatBlock, addToRecentMemory } from '@/lib/memory-store';
 
 interface Idea {
   title: string;
@@ -15,6 +16,8 @@ interface Step1Props {
   onSelectIdea: (idea: Idea) => void;
   onNext: () => void;
   setIdeas: (ideas: Idea[]) => void;
+  activeCategory?: string;
+  setActiveCategory?: (category: string) => void;
 }
 
 export default function Step1Ideas({
@@ -23,6 +26,8 @@ export default function Step1Ideas({
   onSelectIdea,
   onNext,
   setIdeas,
+  activeCategory = 'general',
+  setActiveCategory,
 }: Step1Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -34,7 +39,12 @@ export default function Step1Ideas({
     setIsMissingKey(false);
 
     try {
-      const res = await fetch('/api/ai/ideas', { method: 'POST' });
+      const antiRepeatBlock = buildAntiRepeatBlock(activeCategory);
+      const res = await fetch('/api/ai/ideas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ antiRepeatBlock }),
+      });
       const data = await res.json();
 
       if (!res.ok) {
@@ -67,6 +77,25 @@ export default function Step1Ideas({
           <p className="text-slate-400 text-sm mt-1">
             Click below to generate 3 tailored LinkedIn post concepts based on your customizable prompt.
           </p>
+          {setActiveCategory && (
+            <div className="flex items-center gap-1.5 mt-3 flex-wrap">
+              <span className="text-[11px] font-semibold text-slate-400 mr-1">Category Memory:</span>
+              {['general', 'tech', 'motivation', 'quran'].map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setActiveCategory(cat)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold capitalize transition-all border ${
+                    activeCategory === cat
+                      ? 'bg-blue-600 text-white border-blue-400 shadow-md shadow-blue-600/20'
+                      : 'bg-slate-800/80 text-slate-400 border-slate-700 hover:text-white'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <button
@@ -152,7 +181,10 @@ export default function Step1Ideas({
               return (
                 <div
                   key={idx}
-                  onClick={() => onSelectIdea(idea)}
+                  onClick={() => {
+                    onSelectIdea(idea);
+                    addToRecentMemory(activeCategory, idea.title + ' — ' + idea.description, activeCategory);
+                  }}
                   className={`glass-card p-5 rounded-2xl cursor-pointer transition-all duration-200 relative group flex flex-col justify-between ${
                     isSelected
                       ? 'border-2 border-blue-500 bg-blue-950/30 shadow-xl shadow-blue-600/10'

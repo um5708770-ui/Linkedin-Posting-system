@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Edit3, RefreshCw, ArrowRight, ArrowLeft, CheckCircle2, Sparkles, AlertCircle, Eye } from 'lucide-react';
+import { buildAntiRepeatBlock } from '@/lib/memory-store';
 
 interface Step2Props {
   selectedIdea: { title: string; description: string };
@@ -9,6 +10,7 @@ interface Step2Props {
   setPostText: (text: string) => void;
   onNext: () => void;
   onBack: () => void;
+  activeCategory?: string;
 }
 
 export default function Step2Draft({
@@ -17,6 +19,7 @@ export default function Step2Draft({
   setPostText,
   onNext,
   onBack,
+  activeCategory = 'general',
 }: Step2Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -27,12 +30,14 @@ export default function Step2Draft({
     setError('');
 
     try {
+      const antiRepeatBlock = buildAntiRepeatBlock(activeCategory);
       const res = await fetch('/api/ai/draft', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ideaTitle: selectedIdea.title,
           ideaDescription: selectedIdea.description,
+          antiRepeatBlock,
         }),
       });
 

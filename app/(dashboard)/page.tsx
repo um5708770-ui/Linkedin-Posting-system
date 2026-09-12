@@ -23,6 +23,7 @@ export default function DashboardPage() {
   const [imageOptions, setImageOptions] = useState<string[]>([]);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [savedPostId, setSavedPostId] = useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState('general');
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Load saved session state on mount (from localStorage first, then sync DB for cross-device)
@@ -41,6 +42,7 @@ export default function DashboardPage() {
         if (parsed.imageOptions?.length) setImageOptions(parsed.imageOptions);
         if (parsed.selectedImage) setSelectedImage(parsed.selectedImage);
         if (parsed.savedPostId) setSavedPostId(parsed.savedPostId);
+        if (parsed.activeCategory) setActiveCategory(parsed.activeCategory);
       }
     } catch (e) {
       console.warn('Failed to parse local pipeline cache:', e);
@@ -66,6 +68,7 @@ export default function DashboardPage() {
               if (dbSession.imageOptions?.length) setImageOptions(dbSession.imageOptions);
               if (dbSession.selectedImage) setSelectedImage(dbSession.selectedImage);
               if (dbSession.savedPostId) setSavedPostId(dbSession.savedPostId);
+              if (dbSession.activeCategory) setActiveCategory(dbSession.activeCategory);
             }
           } catch (err) {}
         }
@@ -88,6 +91,7 @@ export default function DashboardPage() {
       imageOptions,
       selectedImage,
       savedPostId,
+      activeCategory,
       updatedAt: Date.now(),
     };
 
@@ -118,6 +122,7 @@ export default function DashboardPage() {
     imageOptions,
     selectedImage,
     savedPostId,
+    activeCategory,
     isLoaded,
   ]);
 
@@ -192,6 +197,8 @@ export default function DashboardPage() {
           selectedIdea={selectedIdea}
           onSelectIdea={(idea) => setSelectedIdea(idea)}
           onNext={() => advanceToStep(2)}
+          activeCategory={activeCategory}
+          setActiveCategory={setActiveCategory}
         />
       )}
 
@@ -202,6 +209,7 @@ export default function DashboardPage() {
           setPostText={setPostText}
           onNext={() => advanceToStep(3)}
           onBack={() => setCurrentStep(1)}
+          activeCategory={activeCategory}
         />
       )}
 
@@ -246,6 +254,7 @@ export default function DashboardPage() {
           onNext={() => {}}
           onBack={() => setCurrentStep(4)}
           onResetPipeline={handleResetPipeline}
+          activeCategory={activeCategory}
         />
       )}
     </div>

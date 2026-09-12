@@ -1,8 +1,22 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Save, RotateCcw, Key, Sparkles, Database, Download, Upload, Trash2, CheckCircle2, AlertCircle, Eye, EyeOff, Bell, BellRing, BellOff, Send } from 'lucide-react';
+import { Settings as SettingsIcon, Save, RotateCcw, Key, Sparkles, Database, Download, Upload, Trash2, CheckCircle2, AlertCircle, Eye, EyeOff, Bell, BellRing, BellOff, Send, Brain, X } from 'lucide-react';
 import { DEFAULT_PROMPTS } from '@/lib/default-prompts';
+import {
+  type MemoryEntry,
+  getRecentMemory,
+  addToRecentMemory,
+  deleteMemoryEntry,
+  clearMemoryCategory,
+  getMemoryLimit,
+  setMemoryLimit,
+  getAllCategoryKeys,
+  DEFAULT_LIMIT,
+  MIN_LIMIT,
+  MAX_LIMIT,
+  DEFAULT_CATEGORIES,
+} from '@/lib/memory-store';
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -48,6 +62,28 @@ export default function SettingsPage() {
   const [pushLoading, setPushLoading] = useState(false);
   const [pushMessage, setPushMessage] = useState('');
   const [testingPush, setTestingPush] = useState(false);
+
+  // Anti-Repeat Memory state
+  const [memoryLimit, setMemoryLimitState] = useState(DEFAULT_LIMIT);
+  const [memoryActiveCategory, setMemoryActiveCategory] = useState('general');
+  const [memoryItems, setMemoryItems] = useState<MemoryEntry[]>([]);
+  const [memoryCategories, setMemoryCategories] = useState<string[]>(['general', 'tech', 'motivation', 'quran']);
+  const [memoryCustomLimit, setMemoryCustomLimit] = useState('');
+  const [showClearMemoryModal, setShowClearMemoryModal] = useState(false);
+  const [newCatInput, setNewCatInput] = useState('');
+  const [showAddCat, setShowAddCat] = useState(false);
+
+  const refreshMemoryState = () => {
+    setMemoryLimitState(getMemoryLimit());
+    setMemoryItems(getRecentMemory(memoryActiveCategory));
+    const allCats = getAllCategoryKeys();
+    const merged = Array.from(new Set([...DEFAULT_CATEGORIES, ...allCats]));
+    setMemoryCategories(merged);
+  };
+
+  useEffect(() => {
+    refreshMemoryState();
+  }, [memoryActiveCategory]);
 
   const checkPushSubscriptionStatus = async () => {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window) {
@@ -846,8 +882,236 @@ export default function SettingsPage() {
           </div>
 
 
+          {/* Section 8: Anti-Repeat Content Memory */}
+          <div className="glass-card p-6 rounded-2xl border border-slate-800 space-y-6">
+            <div>
+              <h2 className="text-sm font-bold text-white flex items-center gap-2">
+                <Brain className="w-4 h-4 text-blue-400" /> 8. Anti-Repeat Content Memory
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">
+                Remembers previously generated content so the AI never repeats the same ideas. Uses a FIFO ring buffer — oldest entries are dropped when the limit is reached.
+              </p>
+            </div>
 
+            {/* Memory Limit Controls */}
+            <div className="p-4 bg-slate-900/60 rounded-xl border border-slate-800 space-y-3">
+              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
+                Memory Capacity Limit
+              </label>
+              <div className="flex flex-wrap items-center gap-2">
+                {[10, 20, 30].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => {
+                      setMemoryLimit(preset);
+                      refreshMemoryState();
+                    }}
+                    className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                      memoryLimit === preset
+                        ? 'bg-blue-600 text-white border-blue-400 shadow-lg shadow-blue-600/20'
+                        : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white hover:border-slate-600'
+                    }`}
+                  >
+                    {preset} Items
+                  </button>
+                ))}
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="number"
+                    min={MIN_LIMIT}
+                    max={MAX_LIMIT}
+                    value={memoryCustomLimit}
+                    onChange={(e) => setMemoryCustomLimit(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const val = parseInt(memoryCustomLimit, 10);
+                        if (!isNaN(val) && val >= MIN_LIMIT && val <= MAX_LIMIT) {
+                          setMemoryLimit(val);
+                          setMemoryCustomLimit('');
+                          refreshMemoryState();
+                        }
+                      }
+                    }}
+                    placeholder="Custom (1–200)"
+                    className="w-28 px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-blue-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const val = parseInt(memoryCustomLimit, 10);
+                      if (!isNaN(val) && val >= MIN_LIMIT && val <= MAX_LIMIT) {
+                        setMemoryLimit(val);
+                        setMemoryCustomLimit('');
+                        refreshMemoryState();
+                      }
+                    }}
+                    className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition-all"
+                  >
+                    Set
+                  </button>
+                </div>
+              </div>
+              <p className="text-[11px] text-slate-400">
+                Current Limit: <span className="text-blue-400 font-bold font-mono">{memoryLimit}</span> items per category (range: {MIN_LIMIT}–{MAX_LIMIT})
+              </p>
+            </div>
 
+            {/* Category Tabs with Count Badges & Add Category */}
+            <div className="flex items-center gap-2 overflow-x-auto py-1">
+              {memoryCategories.map((cat) => {
+                const count = getRecentMemory(cat).length;
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setMemoryActiveCategory(cat)}
+                    className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap border flex items-center gap-1.5 ${
+                      memoryActiveCategory === cat
+                        ? 'bg-blue-600 text-white border-blue-400 shadow-md shadow-blue-600/20'
+                        : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white hover:border-slate-600'
+                    }`}
+                  >
+                    <span className="capitalize">{cat}</span>
+                    {count > 0 && (
+                      <span
+                        className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono leading-none ${
+                          memoryActiveCategory === cat ? 'bg-white/20 text-white' : 'bg-slate-700 text-slate-300'
+                        }`}
+                      >
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+
+              {!showAddCat ? (
+                <button
+                  type="button"
+                  onClick={() => setShowAddCat(true)}
+                  className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-blue-400 border border-dashed border-slate-700 hover:border-blue-500/40 transition-all whitespace-nowrap"
+                >
+                  + Add Category
+                </button>
+              ) : (
+                <div className="flex items-center gap-1 shrink-0">
+                  <input
+                    type="text"
+                    value={newCatInput}
+                    onChange={(e) => setNewCatInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const clean = newCatInput.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
+                        if (clean) {
+                          setMemoryCategories((prev) => Array.from(new Set([...prev, clean])));
+                          setMemoryActiveCategory(clean);
+                          setNewCatInput('');
+                          setShowAddCat(false);
+                        }
+                      } else if (e.key === 'Escape') {
+                        setShowAddCat(false);
+                      }
+                    }}
+                    placeholder="category-name"
+                    className="w-28 px-2 py-1 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs font-mono focus:outline-none focus:border-blue-500"
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const clean = newCatInput.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
+                      if (clean) {
+                        setMemoryCategories((prev) => Array.from(new Set([...prev, clean])));
+                        setMemoryActiveCategory(clean);
+                        setNewCatInput('');
+                        setShowAddCat(false);
+                      }
+                    }}
+                    className="px-2 py-1 bg-blue-600 text-white text-xs font-semibold rounded-lg"
+                  >
+                    Add
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddCat(false)}
+                    className="px-1.5 py-1 text-slate-400 hover:text-white text-xs"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Live Counter + Progress Bar */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-slate-300">
+                  Memory Capacity ({memoryItems.length} / {memoryLimit})
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowClearMemoryModal(true)}
+                  disabled={memoryItems.length === 0}
+                  className="px-3 py-1 bg-rose-600/10 hover:bg-rose-600/20 text-rose-400 border border-rose-500/30 text-[10px] font-semibold rounded-lg flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                >
+                  <Trash2 className="w-3 h-3" /> Clear All
+                </button>
+              </div>
+              <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-blue-500 rounded-full transition-all duration-300"
+                  style={{ width: `${Math.min(100, (memoryItems.length / memoryLimit) * 100)}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Memory Items List */}
+            {memoryItems.length === 0 ? (
+              <div className="p-8 rounded-xl bg-slate-900/40 border border-dashed border-slate-800 text-center">
+                <Brain className="w-8 h-8 text-slate-600 mx-auto mb-2" />
+                <p className="text-xs text-slate-500">
+                  No memories stored for <span className="font-semibold text-slate-400">{memoryActiveCategory}</span>. Memories are saved automatically when you generate and save posts.
+                </p>
+              </div>
+            ) : (
+              <div className="max-h-80 overflow-y-auto space-y-2 pr-1">
+                {memoryItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="p-3 bg-slate-900/60 rounded-xl border border-slate-800 flex items-start justify-between gap-3 group hover:border-slate-700 transition-all"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-slate-200 leading-relaxed line-clamp-2">
+                        {item.text}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <span className="px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-semibold">
+                          {item.theme}
+                        </span>
+                        <span className="text-[10px] text-slate-500">
+                          {new Date(item.savedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        deleteMemoryEntry(memoryActiveCategory, item.id);
+                        refreshMemoryState();
+                      }}
+                      className="p-1 rounded-lg text-slate-600 hover:text-rose-400 hover:bg-rose-500/10 transition-all shrink-0 opacity-0 group-hover:opacity-100"
+                      title="Delete this memory"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           <div className="flex justify-end pt-4">
             <button
@@ -903,6 +1167,40 @@ export default function SettingsPage() {
                 className="px-4 py-2 bg-rose-600 hover:bg-rose-500 disabled:opacity-40 text-white text-xs font-semibold rounded-xl shadow-lg shadow-rose-600/30"
               >
                 {deleting ? 'Deleting...' : 'Permanently Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Clear Memory Confirmation Modal */}
+      {showClearMemoryModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
+          <div className="glass-panel max-w-sm w-full rounded-2xl p-6 border border-rose-500/30 space-y-4">
+            <div className="flex items-center gap-2 text-rose-400 font-bold text-base">
+              <AlertCircle className="w-5 h-5" /> Clear Memory Category
+            </div>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              This will remove all <span className="text-white font-semibold">{memoryItems.length}</span> remembered items from the <span className="text-blue-400 font-semibold">{memoryActiveCategory}</span> category. The AI will no longer avoid repeating these concepts.
+            </p>
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowClearMemoryModal(false)}
+                className="px-4 py-2 bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  clearMemoryCategory(memoryActiveCategory);
+                  refreshMemoryState();
+                  setShowClearMemoryModal(false);
+                }}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold rounded-xl shadow-lg shadow-rose-600/30"
+              >
+                Clear All Memory
               </button>
             </div>
           </div>

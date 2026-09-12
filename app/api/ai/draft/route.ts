@@ -3,13 +3,13 @@ import { generatePostDraftFromAI } from '@/lib/gemini';
 
 export async function POST(request: Request) {
   try {
-    const { ideaTitle, ideaDescription } = await request.json();
+    const { ideaTitle, ideaDescription, antiRepeatBlock } = await request.json();
 
     if (!ideaTitle) {
       return NextResponse.json({ error: 'ideaTitle is required' }, { status: 400 });
     }
 
-    const postText = await generatePostDraftFromAI(ideaTitle, ideaDescription || '');
+    const postText = await generatePostDraftFromAI(ideaTitle, ideaDescription || '', antiRepeatBlock || '');
     return NextResponse.json({ postText });
   } catch (error: any) {
     console.error('Error drafting post:', error);

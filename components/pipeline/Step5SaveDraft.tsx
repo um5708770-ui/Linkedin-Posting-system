@@ -5,6 +5,7 @@ import confetti from 'canvas-confetti';
 import { BookmarkCheck, ArrowRight, ArrowLeft, CheckCircle2, Copy, Download, Sparkles, FileText, RotateCcw } from 'lucide-react';
 
 import { downloadImageFile } from '@/lib/download-image';
+import { addToRecentMemory } from '@/lib/memory-store';
 
 interface Step5Props {
   ideaTitle: string;
@@ -19,6 +20,7 @@ interface Step5Props {
   onNext: () => void;
   onBack: () => void;
   onResetPipeline: () => void;
+  activeCategory?: string;
 }
 
 export default function Step5SaveDraft({
@@ -34,6 +36,7 @@ export default function Step5SaveDraft({
   onNext,
   onBack,
   onResetPipeline,
+  activeCategory = 'general',
 }: Step5Props) {
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -85,6 +88,9 @@ export default function Step5SaveDraft({
         origin: { y: 0.6 },
         colors: ['#2563eb', '#38bdf8', '#34d399'],
       });
+
+      // Save to anti-repeat memory
+      addToRecentMemory(activeCategory, postText.substring(0, 200), ideaTitle);
 
       if (shouldScheduleNext) {
         onNext();

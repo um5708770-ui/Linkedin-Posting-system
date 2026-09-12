@@ -98,9 +98,15 @@ async function executeRotatedAiCall(
 /**
  * Step 1: Idea Generation
  */
-export async function generateIdeasFromAI(): Promise<{ title: string; description: string }[]> {
+export async function generateIdeasFromAI(antiRepeatBlock?: string): Promise<{ title: string; description: string }[]> {
   return await executeRotatedAiCall(
-    (settings) => settings.ideas_prompt,
+    (settings) => {
+      let prompt = settings.ideas_prompt;
+      if (antiRepeatBlock && antiRepeatBlock.trim()) {
+        prompt += '\n\n' + antiRepeatBlock;
+      }
+      return prompt;
+    },
     (responseText) => {
       // 1. Try JSON parsing if returned JSON
       try {
@@ -185,13 +191,16 @@ export async function generateIdeasFromAI(): Promise<{ title: string; descriptio
 /**
  * Step 2: Post Drafting
  */
-export async function generatePostDraftFromAI(ideaTitle: string, ideaDescription: string): Promise<string> {
+export async function generatePostDraftFromAI(ideaTitle: string, ideaDescription: string, antiRepeatBlock?: string): Promise<string> {
   return await executeRotatedAiCall((settings) => {
     let prompt = settings.post_prompt;
     prompt = prompt.replace('{brand_voice}', settings.brand_voice || 'Direct, punchy, authoritative, fluff-free.');
     prompt = prompt.replace('{selected_idea}', `Title: ${ideaTitle}\nDescription: ${ideaDescription}`);
     prompt = prompt.replace('{idea_title}', ideaTitle);
     prompt = prompt.replace('{idea_description}', ideaDescription);
+    if (antiRepeatBlock && antiRepeatBlock.trim()) {
+      prompt += '\n\n' + antiRepeatBlock;
+    }
     return prompt;
   });
 }

@@ -1,9 +1,17 @@
 import { NextResponse } from 'next/server';
 import { generateIdeasFromAI } from '@/lib/gemini';
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
-    const ideas = await generateIdeasFromAI();
+    let antiRepeatBlock = '';
+    try {
+      const body = await request.json();
+      antiRepeatBlock = body?.antiRepeatBlock || '';
+    } catch {
+      // No body or invalid JSON — proceed without anti-repeat block
+    }
+
+    const ideas = await generateIdeasFromAI(antiRepeatBlock);
     return NextResponse.json({ ideas });
   } catch (error: any) {
     console.error('Error generating ideas:', error);
